@@ -1,19 +1,19 @@
 package nozomi.nzmlib.feature
 
 import breeze.linalg.DenseVector
+import nozomi.util.NZMLogging
 
 /**
   * Created by ariwaranosai on 16/2/29.
   *
   */
 
-class StandardScaler(withMean: Boolean, withStd: Boolean) {
+class StandardScaler(withMean: Boolean, withStd: Boolean) extends NZMLogging {
 
     def this() = this(false, true)
 
-    // TODO change to logging
     if (!(withMean || withStd)) {
-        println("Warning: Both withMean and withStd are false. The model does nothing.")
+        logger.warn("Both withMean and withStd are false. The model does nothing.")
     }
 
     def fit(data: Seq[DenseVector[Double]]): StandardScalerModel = {

@@ -11,7 +11,8 @@ libraryDependencies  ++= Seq(
     "org.scalanlp" %% "breeze-viz" % "0.12",
     "org.scalactic" %% "scalactic" % "2.2.6",
     "org.scalatest" %% "scalatest" % "2.2.6" % "test",
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0"
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+    "ch.qos.logback" % "logback-classic" % "1.1.5"
 )
 
 resolvers ++= Seq(
