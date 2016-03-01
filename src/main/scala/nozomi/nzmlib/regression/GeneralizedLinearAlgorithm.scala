@@ -1,8 +1,10 @@
 package nozomi.nzmlib.regression
 
 import breeze.linalg.Matrix
+import nozomi.nzmlib.feature.StandardScaler
 import nozomi.nzmlib.optimization.Optimizer
 import nozomi.util.NZMException
+import nozomi.nzmlib.mlutil.MLUtil._
 
 /**
   * Created by ariwaranosai on 16/2/29.
@@ -135,26 +137,87 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
 
     // TODO complete run and try linear
 
-//    def run(input: Seq[LabeledPoint]): M = {
-//        run(input, generateInitialWeights(input))
-//    }
+    def run(input: Seq[LabeledPoint]): M = {
+        run(input, generateInitialWeights(input))
+    }
 
-//    def run(input: Seq[LabeledPoint], initialWeights: Matrix[Double]): M = {
-//        if (numFeatures < 0) {
-//            numFeatures = input.map(_.features.size).head
-//        }
-//
-//        // TODO give more detail
-//        if (validateData && !validators.forall(func => func(input))) {
-//            throw new NZMException("Input validation failed")
-//        }
-//
-//        val scaler = if (useFeatureScaling) {
-//
-//        } else {
-//            null
-//        }
-//
-//    }
+    def run(input: Seq[LabeledPoint], initialWeights: Matrix[Double]): M = {
+        if (numFeatures < 0) {
+            numFeatures = input.map(_.features.size).head
+        }
+
+        // TODO give more detail
+        if (validateData && !validators.forall(func => func(input))) {
+            throw new NZMException("Input validation failed")
+        }
+
+        val scaler = if (useFeatureScaling) {
+            new StandardScaler(withStd = true, withMean = false).fit(input.map(_.features))
+        } else {
+            null
+        }
+
+        val data = if (addIntercept) {
+            if (useFeatureScaling) {
+                input.map(lp => (lp.label, appendBias(scaler.transform(lp.features))))
+            } else {
+                input.map(lp => (lp.label, appendBias(lp.features)))
+            }
+        } else {
+                if (useFeatureScaling) {
+                    input.map(lp => (lp.label, scaler.transform(lp.features)))
+                } else {
+                    input.map(lp => (lp.label, lp.features))
+                }
+        }
+
+        val initialWeightWithIntercept = if (addIntercept && numOfLinearPredictor == 1) {
+            appendBias(initialWeights)
+        } else {
+            initialWeights
+        }
+
+        val weightsWithIntercept: Matrix[Double] = optimizer.optimize(data, initialWeightWithIntercept)
+
+        val intercept: Double = if (addIntercept && numOfLinearPredictor == 1) {
+            weightsWithIntercept(0, weightsWithIntercept.size - 1)
+        } else {
+            0.0
+        }
+
+        var weights = if (addIntercept && numOfLinearPredictor == 1) {
+            weightsWithIntercept(0, 0 to weightsWithIntercept.cols - 2)
+        } else {
+            weightsWithIntercept
+        }
+
+        if (useFeatureScaling) {
+            if (numOfLinearPredictor == 1) {
+                weights = scaler.transform(weights)
+            } else {
+                var i = 0
+
+                val n = weights.cols / numOfLinearPredictor
+                val weightsArray = weights.iterator.map(_._2).toArray
+
+                while(i < numOfLinearPredictor) {
+                    val start = i * n
+                    val end = (i + 1) * n - { if (addIntercept) 1 else 0}
+
+                    val partialWeightsArray = scaler.transform(
+                        weights(0, start to end)
+                    ).iterator.map(_._2).toArray
+
+                    System.arraycopy(partialWeightsArray, 0, weightsArray, start, partialWeightsArray.length)
+
+                    i += 1
+                }
+
+                weights = Matrix.create(1, weightsArray.length, weightsArray)
+            }
+        }
+
+        createModel(weights, intercept)
+    }
 
 }
