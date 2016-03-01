@@ -87,19 +87,16 @@ class StandardScalerModel (
             val values = data.copy
 
             if (withStd) {
-                if (withStd) {
-                    var i = 0
-                    while(i < size) {
-                        values(i) = if (std(i) != 0.0) (values(i) - localShift(i)) * (1.0 / std(i)) else 0.0
-                        i += 1
-                    }
-                } else {
-                    var i = 0
-                    while(i < size) {
-                        values(i) -= localShift(i)
-                        i += 1
-
-                    }
+                var i = 0
+                while(i < size) {
+                    values(i) = if (std(i) != 0.0) (values(i) - localShift(i)) * (1.0 / std(i)) else 0.0
+                    i += 1
+                }
+            } else {
+                var i = 0
+                while(i < size) {
+                    values(i) -= localShift(i)
+                    i += 1
                 }
             }
             values
