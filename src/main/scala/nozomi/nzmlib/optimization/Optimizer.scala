@@ -1,6 +1,6 @@
 package nozomi.nzmlib.optimization
 
-import breeze.linalg.Matrix
+import breeze.linalg.DenseVector
 
 /**
   * Created by ariwaranosai on 16/2/29.
@@ -8,5 +8,5 @@ import breeze.linalg.Matrix
   */
 
 trait Optimizer {
-    def optimize(data: Seq[(Double, Matrix[Double])], initialWeights: Matrix[Double]): Matrix[Double]
+    def optimize(data: Seq[(Double, DenseVector[Double])], initialWeights: DenseVector[Double]): DenseVector[Double]
 }

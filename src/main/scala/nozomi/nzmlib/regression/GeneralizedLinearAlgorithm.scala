@@ -1,6 +1,6 @@
 package nozomi.nzmlib.regression
 
-import breeze.linalg.Matrix
+import breeze.linalg.DenseVector
 import nozomi.nzmlib.feature.StandardScaler
 import nozomi.nzmlib.optimization.Optimizer
 import nozomi.util.NZMException
@@ -21,7 +21,7 @@ import nozomi.nzmlib.mlutil.MLUtil._
   * @param intercept Intercept for this model.
   */
 abstract class GeneralizedLinearModel (
-    val weights: Matrix[Double], val intercept: Double) {
+    val weights: DenseVector[Double], val intercept: Double) {
 
     /**
       * Predict values for this given data point
@@ -31,7 +31,7 @@ abstract class GeneralizedLinearModel (
       * @param intercept Intercept of the model
       * @return
       */
-    protected def predictPoint(data: Matrix[Double], weights: Matrix[Double], intercept: Double): Double
+    protected def predictPoint(data: DenseVector[Double], weights: DenseVector[Double], intercept: Double): Double
 
     /**
       * Predict values for the given data set using the model trained with parallelization
@@ -39,7 +39,7 @@ abstract class GeneralizedLinearModel (
       * @param testData input data
       * @return
       */
-    def predict_par(testData: Seq[Matrix[Double]]) = {
+    def predict_par(testData: Seq[DenseVector[Double]]) = {
         testData.par.map(point => predictPoint(point, weights, intercept))
     }
 
@@ -49,14 +49,14 @@ abstract class GeneralizedLinearModel (
       * @param testData input data
       * @return
       */
-    def predict(testData: Iterable[Matrix[Double]]) = {
+    def predict(testData: Iterable[DenseVector[Double]]) = {
         testData.map(point => predictPoint(point, weights, intercept))
     }
 
     /**
       * predict value for a single data point
       */
-    def predict(testData: Matrix[Double]) = predictPoint(testData, weights, intercept)
+    def predict(testData: DenseVector[Double]) = predictPoint(testData, weights, intercept)
 
     /**
       * Print a summary of the model
@@ -101,7 +101,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
         this
     }
 
-    protected def createModel(weights: Matrix[Double], intercept: Double): M
+    protected def createModel(weights: DenseVector[Double], intercept: Double): M
 
     def isAddIntercept: Boolean = this.addIntercept
 
@@ -121,17 +121,17 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
       * @param input input data set
       * @return
       */
-    protected def generateInitialWeights(input: Seq[LabeledPoint]): Matrix[Double] = {
+    protected def generateInitialWeights(input: Seq[LabeledPoint]): DenseVector[Double] = {
         if (numFeatures < 0) {
             numFeatures = input.map(_.features.size).head
         }
 
         if (numOfLinearPredictor == 1) {
-            Matrix.zeros[Double](numFeatures, 1)
+            DenseVector.zeros[Double](numFeatures)
         } else if (addIntercept) {
-            Matrix.zeros[Double]((numFeatures + 1) * numOfLinearPredictor, 1)
+            DenseVector.zeros[Double]((numFeatures + 1) * numOfLinearPredictor)
         } else {
-            Matrix.zeros[Double](numFeatures * numOfLinearPredictor, 1)
+            DenseVector.zeros[Double](numFeatures * numOfLinearPredictor)
         }
     }
 
@@ -141,7 +141,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
         run(input, generateInitialWeights(input))
     }
 
-    def run(input: Seq[LabeledPoint], initialWeights: Matrix[Double]): M = {
+    def run(input: Seq[LabeledPoint], initialWeights: DenseVector[Double]): M = {
         if (numFeatures < 0) {
             numFeatures = input.map(_.features.size).head
         }
@@ -177,16 +177,16 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
             initialWeights
         }
 
-        val weightsWithIntercept: Matrix[Double] = optimizer.optimize(data, initialWeightWithIntercept)
+        val weightsWithIntercept: DenseVector[Double] = optimizer.optimize(data, initialWeightWithIntercept)
 
         val intercept: Double = if (addIntercept && numOfLinearPredictor == 1) {
-            weightsWithIntercept(0, weightsWithIntercept.size - 1)
+            weightsWithIntercept(weightsWithIntercept.length - 1)
         } else {
             0.0
         }
 
         var weights = if (addIntercept && numOfLinearPredictor == 1) {
-            weightsWithIntercept(0, 0 to weightsWithIntercept.cols - 2)
+            weightsWithIntercept(0 to weightsWithIntercept.length - 2)
         } else {
             weightsWithIntercept
         }
@@ -197,7 +197,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
             } else {
                 var i = 0
 
-                val n = weights.cols / numOfLinearPredictor
+                val n = weights.length / numOfLinearPredictor
                 val weightsArray = weights.iterator.map(_._2).toArray
 
                 while(i < numOfLinearPredictor) {
@@ -205,7 +205,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
                     val end = (i + 1) * n - { if (addIntercept) 1 else 0}
 
                     val partialWeightsArray = scaler.transform(
-                        weights(0, start to end)
+                        weights(start to end)
                     ).iterator.map(_._2).toArray
 
                     System.arraycopy(partialWeightsArray, 0, weightsArray, start, partialWeightsArray.length)
@@ -213,7 +213,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
                     i += 1
                 }
 
-                weights = Matrix.create(1, weightsArray.length, weightsArray)
+                weights = DenseVector(weightsArray)
             }
         }
 

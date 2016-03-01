@@ -1,6 +1,6 @@
 package nozomi.nzmlib.feature
 
-import breeze.linalg.Matrix
+import breeze.linalg.DenseVector
 
 /**
   * Created by ariwaranosai on 16/2/29.
@@ -16,15 +16,15 @@ class StandardScaler(withMean: Boolean, withStd: Boolean) {
         println("Warning: Both withMean and withStd are false. The model does nothing.")
     }
 
-    def fit(data: Seq[Matrix[Double]]): StandardScalerModel = {
-        val size = data.head.cols
-        val e = Matrix.zeros[Double](1, size)
-        val e_2 = Matrix.zeros[Double](1, size)
+    def fit(data: Seq[DenseVector[Double]]): StandardScalerModel = {
+        val size = data.head.length
+        val e = DenseVector.zeros[Double](size)
+        val e_2 = DenseVector.zeros[Double](size)
         val summary = data.foldLeft((e, e_2))((sum, x) => (sum._1 + x, sum._2 + (x :* x)))
 
         val len: Double = data.length
-        val expection: Matrix[Double] = summary._1 :/ len
-        val std: Matrix[Double] = ((summary._2 :/  len) - (expection :* expection)).toDenseMatrix.map(math.sqrt)
+        val expection: DenseVector[Double] = summary._1 :/ len
+        val std: DenseVector[Double] = ((summary._2 :/ len) - (expection :* expection)).map(math.sqrt)
 
         new StandardScalerModel(
             std,
@@ -38,12 +38,12 @@ class StandardScaler(withMean: Boolean, withStd: Boolean) {
 
 
 class StandardScalerModel (
-                          val std: Matrix[Double],
-                          val mean: Matrix[Double],
+                          val std: DenseVector[Double],
+                          val mean: DenseVector[Double],
                           var withStd: Boolean,
                           var withMean: Boolean) {
 
-    def this(std: Matrix[Double], mean: Matrix[Double]) {
+    def this(std: DenseVector[Double], mean: DenseVector[Double]) {
         this(std, mean, withStd = std != null, withMean = mean != null)
         require(this.withMean || this.withStd,
             "at least one of std or mean must be provided")
@@ -54,7 +54,7 @@ class StandardScalerModel (
         }
     }
 
-    def this(std: Matrix[Double]) = this(std, null)
+    def this(std: DenseVector[Double]) = this(std, null)
 
     def setWithMean(withMean: Boolean): this.type = {
         require(!(withMean && this.mean == null),
@@ -74,29 +74,29 @@ class StandardScalerModel (
 
     /**
       * tranform a single data point
+ *
       * @param data data point to tranform
       * @return
       */
-    def transform(data: Matrix[Double]): Matrix[Double] = {
-        require(mean.size == data.cols)
-        require(data.rows == 1)
+    def transform(data: DenseVector[Double]): DenseVector[Double] = {
+        require(mean.size == data.length)
 
         if (withMean) {
             val localShift = shift
-            val size = data.cols
+            val size = data.length
             val values = data.copy
 
             if (withStd) {
                 if (withStd) {
                     var i = 0
                     while(i < size) {
-                        values((0, i)) = if (std((0, i)) != 0.0) (values((0, i)) - localShift(i)) * (1.0 / std(0, i)) else 0.0
+                        values(i) = if (std(i) != 0.0) (values(i) - localShift(i)) * (1.0 / std(i)) else 0.0
                         i += 1
                     }
                 } else {
                     var i = 0
                     while(i < size) {
-                        values((0, i)) -= localShift(i)
+                        values(i) -= localShift(i)
                         i += 1
 
                     }
@@ -105,11 +105,11 @@ class StandardScalerModel (
             values
         } else if (withStd) {
             var i = 0
-            val size = data.cols
+            val size = data.length
             val values = data.copy
 
             while(i < size) {
-                values((0, i)) *= (if (std((0, i)) != 0.0) 1.0 / std((0, i)) else 0.0)
+                values(i) *= (if (std(i) != 0.0) 1.0 / std(i) else 0.0)
                 i += 1
             }
             values
