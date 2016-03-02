@@ -49,7 +49,7 @@ abstract class GeneralizedLinearModel (
       * @param testData input data
       * @return
       */
-    def predict(testData: Iterable[DenseVector[Double]]) = {
+    def predict(testData: Seq[DenseVector[Double]]) = {
         testData.map(point => predictPoint(point, weights, intercept))
     }
 
