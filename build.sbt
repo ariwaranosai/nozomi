@@ -12,7 +12,8 @@ libraryDependencies  ++= Seq(
     "org.scalactic" %% "scalactic" % "2.2.6",
     "org.scalatest" %% "scalatest" % "2.2.6" % "test",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-    "ch.qos.logback" % "logback-classic" % "1.1.5"
+    "ch.qos.logback" % "logback-classic" % "1.1.5",
+    "org.json4s" % "json4s-native_2.11" % "3.3.0"
 )
 
 resolvers ++= Seq(
