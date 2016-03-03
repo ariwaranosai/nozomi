@@ -3,6 +3,7 @@ package nozomi.nzmlib.regression
 import breeze.linalg.DenseVector
 import nozomi.nzmlib.mlutil.{Loader, Saveable}
 import nozomi.nzmlib.optimization.{GradientDescent, SimpleUpdater, LeastSquaresGradient}
+import nozomi.nzmlib.regression.impl.GLMRegressionModel
 
 /**
   * Created by ariwaranosai on 16/3/2.
@@ -24,6 +25,12 @@ class LinearRegressionModel(
     override protected def predictPoint(data: DenseVector[Double], weights: DenseVector[Double], intercept: Double): Double = {
         weights.dot(data) + intercept
     }
+
+    override def save(path: String): Unit = {
+        GLMRegressionModel.SaveLoad.save(path, this.getClass.getName, weights, intercept)
+    }
+
+    override protected def formatVersion: String = "1.0"
 
 }
 
@@ -66,6 +73,7 @@ object LinearRegressionWithSGD {
 
     /**
       * Train a Linear regession model with given parameters.
+ *
       * @param input dataset
       * @param numIterations  num of iterations
       * @param stepSize size of each step with SGD

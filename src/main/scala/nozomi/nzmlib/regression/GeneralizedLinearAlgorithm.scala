@@ -3,7 +3,7 @@ package nozomi.nzmlib.regression
 import breeze.linalg.DenseVector
 import nozomi.nzmlib.feature.StandardScaler
 import nozomi.nzmlib.optimization.Optimizer
-import nozomi.util.NZMException
+import nozomi.util.{NZMLogging, NZMException}
 import nozomi.nzmlib.mlutil.MLUtil._
 
 /**
@@ -67,7 +67,7 @@ abstract class GeneralizedLinearModel (
 }
 
 
-abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
+abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] extends NZMLogging {
 
     /**
       * The optimizer to solve the problem
@@ -78,7 +78,7 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
     protected val validators: Seq[Seq[LabeledPoint] => Boolean] = List()
 
     /** add intercept or not **/
-    protected var addIntercept: Boolean = false
+    protected var addIntercept: Boolean = true
 
     /** validate or not **/
     protected var validateData: Boolean = true
@@ -135,7 +135,6 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
         }
     }
 
-    // TODO complete run and try linear
 
     def run(input: Seq[LabeledPoint]): M = {
         run(input, generateInitialWeights(input))
@@ -176,6 +175,11 @@ abstract class GeneralizedLinearAlgorithm[M <: GeneralizedLinearModel] {
         } else {
             initialWeights
         }
+
+        logger.info("data is ")
+        data.foreach(x => logger.info(s"${x._1} with ${x._2.toString()}"))
+        logger.info(s"initialWeightWithIntercept is ${initialWeightWithIntercept.toString()}")
+
 
         val weightsWithIntercept: DenseVector[Double] = optimizer.optimize(data, initialWeightWithIntercept)
 

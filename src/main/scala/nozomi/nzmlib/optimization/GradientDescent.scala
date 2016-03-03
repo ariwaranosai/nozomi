@@ -140,6 +140,9 @@ object GradientDescent extends NZMLogging {
                 (x._1 + y._1, x._2 + y._2, x._3 + y._3)
             })
 
+            logger.info(s"$i th gradientSum is $gradientSum with lossSum $lossSum")
+
+
             if (miniBatchSize > 0) {
                 /**
                   * lossSum is computed using the weights from the previous iteration

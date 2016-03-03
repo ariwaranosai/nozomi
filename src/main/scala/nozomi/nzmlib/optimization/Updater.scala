@@ -47,7 +47,7 @@ class SimpleUpdater extends Updater {
                          regParam: Double): (DenseVector[Double], Double) = {
 
         val thisIterStepSize = stepSize / math.sqrt(iter)
-        val newWeights: DenseVector[Double] = gradient * (-thisIterStepSize)
+        val newWeights: DenseVector[Double] = gradient * (thisIterStepSize)
 
         (newWeights, 0)
     }
