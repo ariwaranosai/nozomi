@@ -1,8 +1,9 @@
 package nozomi.nzmlib.optimization
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{norm, DenseVector}
 import nozomi.util.NZMLogging
 import scala.collection.mutable.ArrayBuffer
+import nozomi.nzmlib.mlutil.DataSet._
 
 /**
   * Created by ariwaranosai on 16/3/2.
@@ -26,6 +27,7 @@ class GradientDescent private[nzmlib] (private var gradient: Gradient,
 
     def setMiniBatchFraction(fraction: Double): this.type = {
         this.miniBatchFraction = fraction
+        this
     }
 
     def setNumIterations(iters: Int): this.type = {
@@ -56,8 +58,9 @@ class GradientDescent private[nzmlib] (private var gradient: Gradient,
 
 
     def optimize(data: Seq[(Double, DenseVector[Double])], initialWeights: DenseVector[Double]): DenseVector[Double] = {
-        val (weights, _) = GradientDescent.runMiniBatchSGD(data, gradient,
+        val (weights: DenseVector[Double], _) = GradientDescent.runMiniBatchSGD(data, gradient,
             updater, stepSize, numIterations, regParam, miniBatchFraction, initialWeights, convergenceToL)
+        weights
     }
 }
 
@@ -128,7 +131,67 @@ object GradientDescent extends NZMLogging {
         var i = 1
 
         while (!converged && i <= numIterations) {
-            // TODO 把采样注入到Seq里面
+            val (gradientSum, lossSum, miniBatchSize) = data.simple(miniBatchFraction, 22 + i).data
+                .map(x => {
+                    val g = DenseVector.zeros[Double](n)
+                    val l = gradient.compute(x._2, x._1, weights, g)
+                    (g, l, 1)
+                }).reduce((x, y) => {
+                (x._1 + y._1, x._2 + y._2, x._3 + y._3)
+            })
+
+            if (miniBatchSize > 0) {
+                /**
+                  * lossSum is computed using the weights from the previous iteration
+                  * and regVal is the regularization value computed in the previous iteration as well.
+                  */
+                stochasticLossHistory.append(lossSum / miniBatchSize + regVal)
+                val gradientAvg = gradientSum :/ miniBatchSize.toDouble
+                val update = updater.compute(weights, gradientAvg, stepSize, i, regParam)
+
+                weights = update._1
+                regVal = update._2
+
+                previousWeights = currentWeights
+                currentWeights = Some(weights)
+
+                if (previousWeights.isDefined && currentWeights.isDefined) {
+                    converged = isConverged(previousWeights.get,
+                        currentWeights.get, convergenceToL)
+                }
+            } else {
+                logger.warn(s"Iteration ($i/$numIterations). The size of sampled batch is zero")
+            }
+            i += 1
         }
+
+        logger.info("GradientDescent.runMiniBatchSGD finished. Last 10 stochastic losses %s".format(
+            stochasticLossHistory.takeRight(10).mkString(", ")))
+
+        (weights, stochasticLossHistory.toArray)
+    }
+
+    def runMiniBatchSGD(
+                       data: Seq[(Double, DenseVector[Double])],
+                       gradient: Gradient,
+                       updater: Updater,
+                       stepSize: Double,
+                       numIterations: Int,
+                       regParam: Double,
+                       miniBatchFraction: Double,
+                       initialWeights: DenseVector[Double]
+                       ): (DenseVector[Double], Array[Double]) =
+        GradientDescent.runMiniBatchSGD(data, gradient, updater, stepSize, numIterations,
+            regParam, miniBatchFraction, initialWeights, 0.001)
+
+    private def isConverged(
+                           previousWeights: DenseVector[Double],
+                           currentWeights: DenseVector[Double],
+                           convergenceToL: Double
+                           ): Boolean = {
+
+        val diff: Double = norm(previousWeights - currentWeights)
+
+        diff < convergenceToL * Math.max(norm(currentWeights), 1.0)
     }
 }

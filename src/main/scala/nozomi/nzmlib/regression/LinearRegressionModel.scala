@@ -2,7 +2,7 @@ package nozomi.nzmlib.regression
 
 import breeze.linalg.DenseVector
 import nozomi.nzmlib.mlutil.{Loader, Saveable}
-import nozomi.nzmlib.optimization.{SimpleUpdater, LeastSquaresGradient}
+import nozomi.nzmlib.optimization.{GradientDescent, SimpleUpdater, LeastSquaresGradient}
 
 /**
   * Created by ariwaranosai on 16/3/2.
@@ -49,6 +49,59 @@ class LinearRegressionWithSGD private[nzmlib](
     private val gradient = new LeastSquaresGradient()
     private val updater = new SimpleUpdater()
 
-    // override val optimizer = new GradientDescent(gradient, updater)
+    override val optimizer = new GradientDescent(gradient, updater)
+        .setStepSize(stepSize)
+        .setMiniBatchFraction(miniBatchFraction)
+        .setNumIterations(numIterations)
 
+    def this() = this(1.0, 100, 1.0)
+
+    override protected[nzmlib] def createModel(weights: DenseVector[Double], intercept: Double) =
+        new LinearRegressionModel(weights, intercept)
+
+}
+
+
+object LinearRegressionWithSGD {
+
+    /**
+      * Train a Linear regession model with given parameters.
+      * @param input dataset
+      * @param numIterations  num of iterations
+      * @param stepSize size of each step with SGD
+      * @param miniBatchFraction sample fraction of data
+      * @param initialWeights initial weights
+      * @return
+      */
+    def train(
+             input: Seq[LabeledPoint],
+             numIterations: Int,
+             stepSize: Double,
+             miniBatchFraction: Double,
+             initialWeights: DenseVector[Double]) = {
+        new LinearRegressionWithSGD(stepSize, numIterations, miniBatchFraction)
+            .run(input, initialWeights)
+    }
+
+    def train(
+             input: Seq[LabeledPoint],
+             numIterations: Int,
+             stepSize: Double,
+             miniBatchFraction: Double): LinearRegressionModel = {
+        new LinearRegressionWithSGD(stepSize, numIterations, miniBatchFraction).run(input)
+    }
+
+    def train(
+             input: Seq[LabeledPoint],
+             numIterations: Int,
+             stepSize: Double
+             ): LinearRegressionModel = {
+        train(input, numIterations, stepSize, 1.0)
+    }
+
+    def train(
+             input: Seq[LabeledPoint],
+             numIterations: Int): LinearRegressionModel = {
+        train(input, numIterations, 1.0, 1.0)
+    }
 }
