@@ -1,9 +1,11 @@
 package nozomi.nzmlib.regression
 
-import breeze.linalg.DenseVector
+import breeze.linalg.{inv, Matrix, DenseMatrix, DenseVector}
+import breeze.stats.regression.leastSquares
 import nozomi.nzmlib.mlutil.{Loader, Saveable}
-import nozomi.nzmlib.optimization.{GradientDescent, SimpleUpdater, LeastSquaresGradient}
+import nozomi.nzmlib.optimization._
 import nozomi.nzmlib.regression.impl.GLMRegressionModel
+import nozomi.nzmlib.mlutil.MLUtil._
 
 /**
   * Created by ariwaranosai on 16/3/2.
@@ -39,6 +41,38 @@ object LinearRegressionModel extends Loader[LinearRegressionModel] {
     override def load(path: String): LinearRegressionModel = {
         load(path)
     }
+}
+
+class LinearRegressionWithLSQ private[nzmlib]
+    extends GeneralizedLinearAlgorithm[LinearRegressionModel] {
+    /**
+      * The optimizer to solve the problem
+      *
+      */
+    override def optimizer: Optimizer = TrivalOptimizer(solver)
+
+    def solver(data: Seq[(Double, DenseVector[Double])], params: DenseVector[Double]) = {
+        val X: DenseMatrix[Double] = dataToMatrix(data.map(_._2))
+        val y: DenseVector[Double] = DenseVector(data.map(_._1).toArray)
+        println(X)
+        println(y)
+
+        val t = leastSquares(X.t, y)
+
+        t.coefficients
+    }
+
+
+    override protected def createModel(weights: DenseVector[Double], intercept: Double): LinearRegressionModel =
+        new LinearRegressionModel(weights, intercept)
+}
+
+object LinearRegressionWithLSQ {
+
+    def train(input: Seq[LabeledPoint]): LinearRegressionModel = {
+        new LinearRegressionWithLSQ().run(input)
+    }
+
 }
 
 /**
