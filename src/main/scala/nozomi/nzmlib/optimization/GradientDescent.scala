@@ -133,8 +133,8 @@ object GradientDescent extends NZMLogging {
         while (!converged && i <= numIterations) {
             val (gradientSum, lossSum, miniBatchSize) = data.simple(miniBatchFraction, 22 + i).data
                 .map(x => {
-                    val g = DenseVector.zeros[Double](n)
-                    val l = gradient.compute(x._2, x._1, weights, g)
+                    val (g, l) = gradient.compute(x._2, x._1, weights)
+                    logger.info(s"label ${x._1}, vector ${x._2.toString}, weights ${weights.toString}, gradients ${g.toString}")
                     (g, l, 1)
                 }).reduce((x, y) => {
                 (x._1 + y._1, x._2 + y._2, x._3 + y._3)
@@ -150,10 +150,15 @@ object GradientDescent extends NZMLogging {
                   */
                 stochasticLossHistory.append(lossSum / miniBatchSize + regVal)
                 val gradientAvg = gradientSum :/ miniBatchSize.toDouble
+
                 val update = updater.compute(weights, gradientAvg, stepSize, i, regParam)
+
+                logger.info(s"before weights ${weights.toString}, gradientAvg ${gradientAvg.toString}, stepSize ${stepSize}")
 
                 weights = update._1
                 regVal = update._2
+
+                logger.info(s"weights ${weights.toString}")
 
                 previousWeights = currentWeights
                 currentWeights = Some(weights)
