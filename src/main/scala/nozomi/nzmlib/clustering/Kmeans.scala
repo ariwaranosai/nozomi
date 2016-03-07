@@ -13,4 +13,6 @@ class Kmeans (
              private var seed: Long
              ) {
 
+    // TODO to complete kmeans++
+
 }
