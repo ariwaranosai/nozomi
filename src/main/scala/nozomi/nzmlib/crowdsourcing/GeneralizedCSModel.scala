@@ -21,6 +21,18 @@ import org.json4s.native.JsonMethods._
   * @param workers correct rate for every worker
   */
 
+class GeneralizedCSModel(solution: Seq[Double],
+                         workers: Seq[Double]) extends Saveable{
+
+    /**
+      * @param path path to save model
+      */
+    override def save(path: String): Unit =
+        GeneralizedCSModel.Save.save(path, this.getClass.getName, workers, solution)
+
+    override protected def formatVersion: String = "0.1"
+}
+
 object GeneralizedCSModel {
     object Save {
 
@@ -43,18 +55,11 @@ object GeneralizedCSModel {
 
 }
 
-class OrdinaryCSModel(solution: Seq[Double],
-                      workers: Seq[Double]) extends Saveable {
+class OrdinaryCSModel(solution: Seq[Double], workers: Seq[Double])
+    extends GeneralizedCSModel(solution, workers) {
 
     def getReliabilityById(index: Int) = workers(index)
 
     def getSolutionById(index: Int) = solution(index)
 
-    /**
-      * @param path path to save model
-      */
-    override def save(path: String): Unit =
-        GeneralizedCSModel.Save.save(path, this.getClass.getName, workers, solution)
-
-    override protected def formatVersion: String = "0.1"
 }
