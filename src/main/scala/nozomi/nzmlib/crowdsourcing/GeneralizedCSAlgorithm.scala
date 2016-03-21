@@ -9,6 +9,7 @@ abstract class GeneralizedCSAlgorithm[M <: GeneralizedCSModel]{
 
     protected var workerNum = -1
     protected var entityNum = -1
+    protected var defaultLabel: Double = 0
 
     def setWorkerNum(num: Int): this.type = {
         this.workerNum = num
@@ -17,6 +18,11 @@ abstract class GeneralizedCSAlgorithm[M <: GeneralizedCSModel]{
 
     def setEntityNum(num: Int): this.type = {
         this.entityNum = num
+        this
+    }
+
+    def setDefaultLabel(label: Double): this.type = {
+        this.defaultLabel = label
         this
     }
 
