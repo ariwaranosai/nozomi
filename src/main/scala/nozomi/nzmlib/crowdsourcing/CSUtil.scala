@@ -3,6 +3,8 @@ package nozomi.nzmlib.crowdsourcing
 import scala.collection.mutable
 import breeze.linalg.{DenseVector, DenseMatrix}
 
+import scala.reflect.ClassTag
+
 /**
   * Created by ariwaranosai on 16/3/17.
   *
@@ -37,8 +39,15 @@ object CSUtil {
     }
 
 
-    // TODO add weight
-    def collectWithMax[T](dv: DenseVector[T], weight: DenseVector[T]): T = ???
+    def collectWithMax[T: ClassTag](dv: DenseVector[T], weight: DenseVector[Double], default: => T): T = {
+        val collect = mutable.Map[T, Double]()
+
+        dv.toArray.zipWithIndex.filter(_._1 != default).foreach( k => {
+            collect.update(k._1, collect.getOrElse(k._1, 0.0) + weight(k._2))
+        })
+
+        collect.maxBy(_._2)._1
+    }
 
 
 }

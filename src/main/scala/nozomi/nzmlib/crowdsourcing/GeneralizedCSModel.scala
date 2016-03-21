@@ -24,6 +24,9 @@ import org.json4s.native.JsonMethods._
 class GeneralizedCSModel(solution: Seq[Double],
                          workers: Seq[Double]) extends Saveable{
 
+    lazy val workerNum = workers.size
+    lazy val entityNum = solution.size
+
     /**
       * @param path path to save model
       */
