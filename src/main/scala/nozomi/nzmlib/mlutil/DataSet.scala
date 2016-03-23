@@ -12,6 +12,7 @@ class ImplicitDataSet[T](val data: Seq[T]) {
         val rand = new Random(seed)
         new ImplicitDataSet[T](data.filter(_ => rand.nextDouble() < frac))
     }
+
 }
 
 

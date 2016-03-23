@@ -10,7 +10,7 @@ abstract class Solver {
 }
 
 trait CSVSolver extends Solver {
-    private def lineSolver(s: String): Seq[String] = {
+     def lineSolver(s: String): Seq[String] = {
         s.stripLineEnd.split(",")
     }
 }
