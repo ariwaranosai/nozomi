@@ -7,14 +7,14 @@ import scala.util.Random
   *
   */
 
-class DataSet[T](val data: Seq[T]) {
-    def simple(frac: Double, seed: Int): DataSet[T] = {
+class ImplicitDataSet[T](val data: Seq[T]) {
+    def simple(frac: Double, seed: Int): ImplicitDataSet[T] = {
         val rand = new Random(seed)
-        new DataSet[T](data.filter(_ => rand.nextDouble() < frac))
+        new ImplicitDataSet[T](data.filter(_ => rand.nextDouble() < frac))
     }
 }
 
 
 object DataSet {
-    implicit def DataSetOps[T](data: Seq[T]): DataSet[T] = new DataSet[T](data)
+    implicit def DataSetOps[T](data: Seq[T]): ImplicitDataSet[T] = new ImplicitDataSet[T](data)
 }
