@@ -11,8 +11,13 @@ import scala.reflect._
   */
 
 class DataResolver(data: Seq[List[String]]) {
-    protected var maps = Map[Int, Map[String, Int]]()
-    protected var template = Vector[Scheme]()
+    var maps = Map[Int, Map[String, Int]]()
+    private var template = Vector[Scheme]()
+
+    def setTemplate(t: Vector[Scheme]): this.type = {
+        this.template = t
+        this
+    }
 
     def collectCols(s: Int) = data.map(entry => {
         entry(s)
@@ -24,8 +29,7 @@ class DataResolver(data: Seq[List[String]]) {
 
 
     // TODO use shapeless
-    def transform[T](template: Vector[Scheme])
-                    (implicit cos: Array[Any] => T ): Seq[T] = {
+    def transform[T](implicit cos: Array[Any] => T ): Seq[T] = {
         val hasEnum = template.zipWithIndex.filter(_._1 == SEnum)
 
         if (hasEnum.nonEmpty) {
@@ -39,14 +43,13 @@ class DataResolver(data: Seq[List[String]]) {
                 case ((str, SString), i) => str.toString
                 case ((str, SEnum), i) => maps(i)(str)
             }).toArray[Any]
-            cos(params.toArray)
+            cos(params)
         })
     }
 }
 
 object DataResolver {
-    def apply[T](d: Seq[List[String]], template: Vector[Scheme])(implicit cos: Array[Any] => T): Seq[T] =
-        new DataResolver(d).transform[T](template)
+    def apply(data: Seq[List[String]]): DataResolver = new DataResolver(data)
 }
 
 object SchemeT {

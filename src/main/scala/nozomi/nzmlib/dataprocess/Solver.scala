@@ -6,11 +6,13 @@ package nozomi.nzmlib.dataprocess
   */
 
 abstract class Solver {
-    protected def lineSolver(s: String): Seq[String]
+    protected def lineSolver(s: String): List[String]
 }
 
-trait CSVSolver extends Solver {
-     def lineSolver(s: String): Seq[String] = {
-        s.stripLineEnd.split(",")
+class CSVSolver extends Solver {
+     def lineSolver(s: String): List[String] = {
+        s.stripLineEnd.split(",").toList
     }
 }
+
+object CSVSolver extends CSVSolver with Reader
