@@ -15,4 +15,5 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
     override var optimizer: Seq[LabeledData] => (Seq[Double], Seq[Double]) = _
 
     override protected def createModel(solution: Seq[Double], workers: Seq[Double]): OrdinaryCSModel = ???
+
 }

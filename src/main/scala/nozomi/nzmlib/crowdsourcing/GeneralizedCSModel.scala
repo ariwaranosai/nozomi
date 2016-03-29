@@ -58,7 +58,7 @@ object GeneralizedCSModel {
 
 }
 
-class OrdinaryCSModel(solution: Seq[Double], workers: Seq[Double])
+class OrdinaryCSModel(val solution: Seq[Double], val workers: Seq[Double])
     extends GeneralizedCSModel(solution, workers) {
 
     def getReliabilityById(index: Int) = workers(index)
