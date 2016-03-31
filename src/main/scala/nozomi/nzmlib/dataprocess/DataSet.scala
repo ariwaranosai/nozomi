@@ -30,4 +30,14 @@ object DataSet {
         val data = solver.transform[T]
         new DataSet[T](title, data, solver.maps, template)
     }
+
+    def apply[T](template: Vector[Scheme], maps: Map[Int, Map[String, Int]])
+                (reader: Reader, path: String, hasTitle: Boolean, skip: Int)
+                (implicit cos: Array[Any] => T): DataSet[T] = {
+        val (title, rdata) = reader.read(path, hasTitle, skip)
+        val solver = DataResolver(rdata).setTemplate(template).setMaps(maps)
+        val data = solver.transform[T]
+        new DataSet[T](title, data, solver.maps, template)
+    }
+
 }

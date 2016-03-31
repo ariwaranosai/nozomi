@@ -19,6 +19,11 @@ class DataResolver(data: Seq[List[String]]) {
         this
     }
 
+    def setMaps(m: Map[Int, Map[String, Int]]): this.type = {
+        this.maps = m
+        this
+    }
+
     def collectCols(s: Int) = data.map(entry => {
         entry(s)
     }).toSet.zipWithIndex.toMap
@@ -32,18 +37,28 @@ class DataResolver(data: Seq[List[String]]) {
     def transform[T](implicit cos: Array[Any] => T ): Seq[T] = {
         val hasEnum = template.zipWithIndex.filter(_._1 == SEnum)
 
-        if (hasEnum.nonEmpty) {
+        if (hasEnum.nonEmpty && maps.isEmpty) {
             maps = collectCols(hasEnum.map(_._2).toList)
         }
 
-        data.map(row => {
-            val params = row.zip(template).zipWithIndex.map({
-                case ((str, SInt), i) => str.toInt
-                case ((str, SDouble), i) => str.toDouble
-                case ((str, SString), i) => str.toString
-                case ((str, SEnum), i) => maps(i)(str)
+        data.flatMap(row => {
+            val params = row.zip(template).zipWithIndex.flatMap({
+                case ((str, SInt), i) => List(str.toInt)
+                case ((str, SDouble), i) => List(str.toDouble)
+                case ((str, SString), i) => List(str.toString)
+                case ((str, SEnum), i) => {
+                    val t = maps(i).getOrElse(str, null)
+                    if(t == null) {
+                        List()
+                    }
+                    else
+                        List(t)
+                }
             }).toArray[Any]
-            cos(params)
+            if(params.length != template.length)
+                Seq()
+            else
+                Seq(cos(params))
         })
     }
 }
