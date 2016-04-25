@@ -1,6 +1,5 @@
 package nozomi.nzmlib.crowdsourcing
 
-import breeze.linalg.DenseMatrix
 import CSUtil._
 import nozomi.util.NZMLogging
 import breeze.linalg._
@@ -60,4 +59,8 @@ class Voting extends GeneralizedCSAlgorithm[OrdinaryCSModel]
         (solution.toArray, reliability.inner.toArray)
 
     }
+}
+
+object Voting {
+    def apply(): Voting = new Voting()
 }

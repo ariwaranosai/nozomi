@@ -9,9 +9,10 @@ import scala.language.implicitConversions
 
 case class LabeledData(entity: Int, person: Int, label: Double) {
     override def toString = {
-        s"Problem $entity is labeled as ${label.toString} by persion $person"
+        s"Problem $entity is labeled as ${label.toString} by person $person"
     }
 }
+
 
 object LabeledData {
     implicit def LabeledDataCos(s: Array[Any]): LabeledData = {

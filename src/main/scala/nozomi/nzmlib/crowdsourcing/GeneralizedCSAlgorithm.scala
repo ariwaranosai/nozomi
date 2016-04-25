@@ -1,5 +1,7 @@
 package nozomi.nzmlib.crowdsourcing
 
+import nozomi.nzmlib.dataprocess.DataSet
+
 /**
   * Created by ariwaranosai on 16/3/18.
   *
@@ -34,5 +36,8 @@ abstract class GeneralizedCSAlgorithm[M <: GeneralizedCSModel]{
         val (solution, workers) = optimizer(data)
         createModel(solution, workers)
     }
+
+    def run(data: DataSet[LabeledData]): M = run(data.data)
+
 
 }

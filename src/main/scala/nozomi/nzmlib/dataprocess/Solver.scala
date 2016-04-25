@@ -11,13 +11,19 @@ abstract class Solver {
 
 class CSVSolver extends Solver {
      def lineSolver(s: String): List[String] = {
-        s.stripLineEnd.split(",").toList
-    }
+        if (s.trim.nonEmpty)
+            s.trim.split(',').toList
+         else
+            List()
+     }
 }
 
 class SpaceSplitSolver(seq: String) extends Solver {
     def lineSolver(s: String): List[String] = {
-        s.stripLineEnd.split(seq).toList
+        if (s.trim.nonEmpty)
+            s.trim.split(seq).toList
+        else
+            List()
     }
 }
 
