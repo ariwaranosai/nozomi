@@ -3,6 +3,11 @@
 
 Scala implementation of some algorithms for crowdsourcing.
 
+###Docker
+docker pull ariwaranosai/nozomi
+docker run -it ariwaranosai/nozomi sbt
+
+
 ###GLAD
 
 GLAD is an EM algorithm from 
