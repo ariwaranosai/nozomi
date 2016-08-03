@@ -23,5 +23,4 @@ object MLUtil {
 
         DenseMatrix.create(cols, row, data.toArray.flatMap(_.toArray))
     }
-
 }
