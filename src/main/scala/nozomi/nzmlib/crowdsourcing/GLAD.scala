@@ -3,6 +3,8 @@ package nozomi.nzmlib.crowdsourcing
 import nozomi.util.NZMLogging
 import breeze.stats.distributions.{Uniform, Bernoulli}
 import math._
+import breeze.linalg._
+import breeze.numerics.sigmoid
 
 /**
   * Created by ariwaranosai on 16/3/28.
@@ -37,6 +39,12 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
     var probZ_1 = Array[Double]()
     var probZ_0 = Array[Double]()
 
+    // M-step var
+    var qdAlpha = Array[Double]()
+    var qdBeta = Array[Double]()
+    var vectorAB = Array[Double]()
+    var vectorGrad = Array[Double]()
+
     // todo complete EM
     override var optimizer: Seq[LabeledData] => (Seq[Double], Seq[Double]) = _
 
@@ -59,8 +67,8 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
 
 
     private def computeE(data: Seq[LabeledData]) = {
-        probZ_1 = priorZ_1.get.map(log(_))
-        probZ_0 = priorZ_0.get.map(x => log(1.0 - x))
+        probZ_1 = priorZ_1.get.map(math.log)
+        probZ_0 = priorZ_0.get.map(x => math.log(1.0 - x))
 
         // \prod p(l_{ij}| z_j, \alpha_i, \beta_j)
         data.foreach({ label =>
@@ -83,13 +91,13 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
 
     }
 
-    private def computeQ(data: Seq[LabeledData]) {
+    private def computeQ(data: Seq[LabeledData]): Double =  {
         // compute Q by \sum_j E[\ln p(z_j)] + \sum_{ij} E[\ln p(l_{ij}|z_j, \alpha_i, \beta_j)] + gauess prior
         var Q = 0.0
 
         // compute \sum_j E[\ln p(z_j)]
-        Q += probZ_0.zip(priorZ_0.get).foldLeft(0.0)((y, x) => x._1 * log(1 - x._2) + y)
-        Q += probZ_1.zip(priorZ_1.get).foldLeft(0.0)((y, x) => x._1 * log(x._2) + y)
+        Q += probZ_0.zip(priorZ_0.get).foldLeft(0.0)((y, x) => x._1 * math.log(1 - x._2) + y)
+        Q += probZ_1.zip(priorZ_1.get).foldLeft(0.0)((y, x) => x._1 * math.log(x._2) + y)
 
         // compute \sum_{ij} E[\ln p(l_{ij}|z_j, \alpha_i, \beta_j)]
         data.foreach(label => {
@@ -97,14 +105,14 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
             val entity = label.entity
             val l = label.label.toInt
 
-            var ln_sigma = -log(1 + exp(alpha.get(person) * -exp(beta.get(entity))))
+            var ln_sigma = -math.log(1 + exp(alpha.get(person) * -exp(beta.get(entity))))
 
             if (ln_sigma.isNegInfinity) {
                 ln_sigma = exp(beta.get(entity)) * alpha.get(person)
                 logger.info(s"person $person labeled $entity is $l overflow")
             }
 
-            var ln_minus_sigma = -log(1 + exp(exp(beta.get(entity)) + alpha.get(person)))
+            var ln_minus_sigma = -math.log(1 + exp(exp(beta.get(entity)) + alpha.get(person)))
 
             if (ln_minus_sigma.isNegInfinity) {
                 ln_minus_sigma = -exp(beta.get(entity) + alpha.get(person))
@@ -117,17 +125,55 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
         // add gaussian prior
         Q += alpha.get.zip(priorAlpha).foldLeft(0.0)((x, y) => x + zscore(y._1 - y._2))
         Q += beta.get.zip(priorBeta).foldLeft(0.0)((x, y) => x + zscore(y._1 - y._2))
+        Q
     }
 
     def zscore(x: Double): Double = 1/sqrt(2 * Pi) * exp(-pow(x, 2) / 2)
 
-    private def computeM(): Unit = {
-        // todo compute M step
+    private def computeM(data: Seq[LabeledData], stepSize: Double, delta: Double): Unit = {
+        // use gradientAsscent to increase likehood
+        var iteration = 0
+        var oldQ = computeQ(data)
+        var newQ = oldQ
+        do {
+            oldQ = newQ
+            gradientAscend(data ,stepSize)
+            newQ = computeQ(data)
+            iteration += 1
+        } while(iteration < maxIterations && newQ - oldQ > delta)
+    }
+
+    private def gradientAscend(data: Seq[LabeledData], stepSize: Double): Unit = {
+        // add prior
+        (0 until workerNumber).foreach(i => qdAlpha(i) = alpha.get(i) - priorAlpha(i))
+        (0 until entityNumber).foreach(i => beta.get(i) - priorBeta(i))
+
+        // update
+
+        data.foreach(label => {
+            // var named following paper
+            val j = label.entity
+            val i = label.person
+            val lij = label.label
+            val sigma = sigmoid(exp(beta.get(j)) * alpha.get(i))
+
+            qdAlpha(i) += (probZ_1(j) * (lij - sigma) +
+              probZ_0(j) * (1 - lij - sigma)) * exp(beta.get(j))
+
+            qdBeta(j) += (probZ_1(j) * (lij - sigma) +
+              probZ_0(j) * (1 - lij - sigma)) * exp(beta.get(j)) * alpha.get(i)
+        })
+
+
+        // ascent
+
+        (0 until workerNumber).foreach(i => alpha.get(i) += stepSize * qdAlpha(i))
+        (0 until entityNumber).foreach(i => beta.get(i) += stepSize * qdBeta(i))
 
     }
 
     private def logSigmod(l: Int, z: Int, a: Double, b: Double): Double = {
-        if (z == l) -log(1.0 + exp(a * exp(-b)))
+        if (z == l) -math.log(1.0 + exp(a * exp(-b)))
         else 1 - log(1.0 + exp(1 * exp(-b)))
     }
 
