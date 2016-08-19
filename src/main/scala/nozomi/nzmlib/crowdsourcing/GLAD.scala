@@ -1,9 +1,9 @@
 package nozomi.nzmlib.crowdsourcing
 
 import nozomi.util.NZMLogging
-import breeze.stats.distributions.{Uniform, Bernoulli}
+import breeze.stats.distributions.{Bernoulli, Uniform}
+
 import math._
-import breeze.linalg._
 import breeze.numerics.sigmoid
 
 /**
@@ -11,7 +11,11 @@ import breeze.numerics.sigmoid
   *
   */
 
-class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
+class GLADModel(s: Seq[Double], w: Seq[Double], difficulty: Seq[Double]) extends OrdinaryCSModel(s, w) {
+
+}
+
+class GLAD extends GeneralizedCSAlgorithm[GLADModel]
     with NZMLogging { self =>
 
     var epsilon: Double = 0.5
@@ -24,8 +28,6 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
     var alpha: Option[Array[Double]] = None
     // object's difficulty
     var beta: Option[Array[Double]] = None
-    // label for objects
-    var z_truth: Option[Array[Int]] = None
 
     // prior
     var priorZ_1: Option[Array[Double]] = None
@@ -42,11 +44,35 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
     // M-step var
     var qdAlpha = Array[Double]()
     var qdBeta = Array[Double]()
-    var vectorAB = Array[Double]()
-    var vectorGrad = Array[Double]()
 
-    // todo complete EM
-    override var optimizer: Seq[LabeledData] => (Seq[Double], Seq[Double]) = _
+    override var optimizer: Seq[LabeledData] => (Seq[Double], Seq[Double]) = data => {
+        logger.info("GLAD: running")
+        init(data)
+
+        var Q = 0.0
+        var lastQ = 0.0
+
+        computeE(data)
+        Q = computeQ(data)
+
+        logger.info(s"GLAD: Q = $Q")
+
+        do {
+            lastQ = Q
+
+            computeE(data)
+            Q = computeQ(data)
+
+            logger.info(s"after E step Q = $Q")
+
+            computeM(data, 0.001, 0.1)
+
+            Q = computeQ(data)
+            logger.info(s"After M step, Q = $Q")
+        } while(abs(Q - lastQ) > this.epsilon)
+
+        (probZ_1.map(x => if(x > 0.5) 1.0 else 0) , alpha.get)
+    }
 
 
     private def init(data: Seq[LabeledData]) = {
@@ -56,7 +82,6 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
         alpha = Some(uniform.sample(workerNumber).toArray[Double])
         beta = Some(uniform.sample(entityNumber).toArray[Double])
 
-        z_truth = Some(Array.fill(entityNumber)(0))
 
         priorZ_0 = Some(Array.fill(entityNumber)(0.5))
         priorZ_1 = Some(Array.fill(entityNumber)(0.5))
@@ -177,7 +202,6 @@ class GLAD extends GeneralizedCSAlgorithm[OrdinaryCSModel]
         else 1 - log(1.0 + exp(1 * exp(-b)))
     }
 
-    // todo createModel
     override protected def createModel(solution: Seq[Double], workers: Seq[Double]): OrdinaryCSModel = ???
 
     def setEpsilon(e: Double): this.type = {
