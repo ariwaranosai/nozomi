@@ -11,7 +11,13 @@ import breeze.numerics.sigmoid
   *
   */
 
-class GLADModel(s: Seq[Double], w: Seq[Double], difficulty: Seq[Double]) extends OrdinaryCSModel(s, w) {
+class GLADModel(s: Seq[Double], w: Seq[Double]) extends OrdinaryCSModel(s, w) { self =>
+    var difficulty: Option[Seq[Double]] = None
+
+    def setDifficulty(d: Seq[Double]): this.type = {
+        difficulty = Some(d)
+        self
+    }
 
 }
 
@@ -202,8 +208,6 @@ class GLAD extends GeneralizedCSAlgorithm[GLADModel]
         else 1 - log(1.0 + exp(1 * exp(-b)))
     }
 
-    override protected def createModel(solution: Seq[Double], workers: Seq[Double]): OrdinaryCSModel = ???
-
     def setEpsilon(e: Double): this.type = {
         self.epsilon = e
         self
@@ -222,6 +226,10 @@ class GLAD extends GeneralizedCSAlgorithm[GLADModel]
     def setEntityNumber(e: Int): this.type = {
         self.entityNumber = e
         self
+    }
+
+    override protected def createModel(solution: Seq[Double], workers: Seq[Double]): GLADModel = {
+      new GLADModel(solution, workers)
     }
 }
 
