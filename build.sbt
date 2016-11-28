@@ -9,12 +9,11 @@ libraryDependencies  ++= Seq(
     "org.scalanlp" %% "breeze" % "0.12",
     "org.scalanlp" %% "breeze-natives" % "0.12",
     "org.scalanlp" %% "breeze-viz" % "0.12",
-    "org.scalactic" %% "scalactic" % "2.2.6",
-    "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+    "org.scalactic" %% "scalactic" % "3.0.1",
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "ch.qos.logback" % "logback-classic" % "1.1.5",
-    "org.json4s" % "json4s-native_2.11" % "3.3.0",
-    "com.chuusai" %% "shapeless" % "2.3.1"
+    "org.json4s" % "json4s-native_2.11" % "3.3.0"
 )
 
 resolvers ++= Seq(
