@@ -33,7 +33,7 @@ class DataResolver(data: Seq[List[String]]) {
     }.toSet[String].zipWithIndex.toMap)).toMap
 
 
-    // TODO use shapeless
+    // TODO use shapeless or macros
     def transform[T](implicit cos: Array[Any] => T ): Seq[T] = {
         val hasEnum = template.zipWithIndex.filter(_._1 == SEnum)
 
@@ -73,4 +73,10 @@ object SchemeT {
     case object SDouble extends Scheme
     case object SEnum extends Scheme
     case object SString extends Scheme
+
+    def scheme2String(value: Any, s: Scheme, m: Map[String, Int]): String =
+        s match {
+            case SEnum => m(value.asInstanceOf[String]).toString
+            case _ => value.toString
+        }
 }
