@@ -113,8 +113,8 @@ class GLAD extends GeneralizedCSAlgorithm[GLADModel]
         })
 
         List.range(0, workerNumber).foreach(index => {
-            probZ_0(index) = exp(probZ_1(index))
-            probZ_1(index) = exp(probZ_0(index))
+            probZ_0(index) = exp(probZ_0(index))
+            probZ_1(index) = exp(probZ_1(index))
 
             probZ_0(index) = probZ_0(index) / (probZ_0(index) + probZ_0(index))
             probZ_1(index) = 1 - probZ_0(index)
