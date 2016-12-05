@@ -43,7 +43,7 @@ class LabeledDataTest extends FlatSpec {
             if (x(2).toInt > 1)
                 List()
             else
-                List(List(x(1), x.head, x(2)))
+                List(List(x.head, x(1), x(2)))
         }
 
 
@@ -55,7 +55,9 @@ class LabeledDataTest extends FlatSpec {
 
         val res = Voting().setDefaultLabel(-1).run(data)
 
-        val s = DataSet[Truth](Vector[Scheme](SEnum, SInt), data.map)(
+        val m = Map(0 -> data.map(1), 1 -> data.map(0))
+
+        val s = DataSet[Truth](Vector[Scheme](SEnum, SInt), m)(
             CSVSolver,
             Source.fromString(rawTruth)
         )
