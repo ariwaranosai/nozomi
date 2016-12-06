@@ -9,7 +9,7 @@ import nozomi.util.NZMLogging
   *
   */
 
-class SelfPacedGLAD extends GeneralizedCSAlgorithm[GLADModel]
+abstract class SelfPacedGLAD extends GeneralizedCSAlgorithm[GLADModel]
   with NZMLogging { self =>
 
     // some const
@@ -100,16 +100,20 @@ class SelfPacedGLAD extends GeneralizedCSAlgorithm[GLADModel]
             computeMWithW(data, 0.001, 0.1)
             Q = computeQWithW(data)
             logger.info(s"WGLAD: after M-step Q = $Q")
-
             updateW()
+
             count += 1
         } while(abs(Q - lastQ) > this.epsilon && count < maxIterations)
+
+        (probZ1.zip(probZ0).map(x => if(x._1 > x._2) 1.0 else 0.0), alpha.get)
     }
 
     private def logSigmod(l: Int, z: Int, a: Double, b: Double): Double = {
         if (z == l) -math.log(1.0 + exp(a * exp(-b)))
         else 1 - log(1.0 + exp(1 * exp(-b)))
     }
+
+    private def logistic(x: Double) = 1.0 / (1.0 + exp(-x))
 
     override protected def createModel(solution: Seq[Double], workers: Seq[Double]): GLADModel = {
         new GLADModel(solution, workers)
@@ -230,10 +234,50 @@ class SelfPacedGLAD extends GeneralizedCSAlgorithm[GLADModel]
             qdBeta(j) += getW(index) * (probZ1(j) * (lij - sigma) +
               probZ0(j) * (1 - lij - sigma) * alpha.get(i) * exp(beta.get(j)))
         })
-        // todo ascent
+
+        (0 until workerNum).foreach(i => alpha.get(i) += stepSize * qdAlpha(i))
+        (0 until entityNum).foreach(i => beta.get(i) += stepSize * qdBeta(i))
     }
 
-    def updateW() = ???
+    def computeLikelihood(data: Seq[LabeledData]): Double = {
+        var L = 0.0
+        /*
+        (0 until entityNum).foreach { j =>
+            var P1 = priorZ_1.get(j)
+            var P0 = priorZ_0.get(j)
 
+            (0 until ).foreach { i =>
+                if ()
+            }
+        }*/
 
+        data.map(l => (l.entity, (l.person, l.label))).groupBy(_._1).foreach {
+            case (entity, labels) =>
+                var P1 = priorZ_1.get(entity)
+                var P0 = 1 - priorZ_1.get(entity)
+
+                labels foreach {
+                    case (_, (worker, label)) => {
+                        val sigma = logistic(exp(beta.get(entity)) * alpha.get(worker))
+                        P1 *= pow(sigma, label) * pow(1 - sigma, 1 - label)
+                        P0 *= pow(sigma, 1 - label) * pow(1 - sigma, label)
+                    }
+                }
+
+                L += log(P1 + P0)
+        }
+
+        (0 until workerNum) foreach {i => L += log(zScore(alpha.get(i)) - priorAlpha(i))}
+        (0 until entityNum) foreach {i => L += log(zScore(beta.get(i)) - priorBeta(i))}
+
+        L
+    }
+
+    def updateW(): Unit
+
+}
+
+trait SelfPaced extends SelfPacedGLAD {
+    override def updateW(): Unit = {
+    }
 }
