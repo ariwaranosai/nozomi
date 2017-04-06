@@ -10,7 +10,7 @@ Scala implementation of some algorithms for crowdsourcing.
 #### Docker Pull Command
 docker pull ariwaranosai/nozomi
 
-####Docker Run Command
+#### Docker Run Command
 docker run -it ariwaranosai/nozomi sbt
 
 
